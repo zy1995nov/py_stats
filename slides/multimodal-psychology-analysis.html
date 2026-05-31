@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多模态心理分析模型是什么？</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
+        :root {
+            --blue-900: #0f3fbb;
+            --blue-800: #1556dc;
+            --blue-700: #1d6dff;
+            --blue-500: #3b82f6;
+            --blue-300: #8cbcff;
+            --blue-100: #dceaff;
+            --blue-050: #f4f8ff;
+            --orange-600: #ff7a1a;
+            --purple-600: #705cf6;
+            --cyan-600: #04a8d8;
+            --ink: #16336f;
+            --muted: #5170aa;
+            --line: #b7d3ff;
+            --paper: rgba(255, 255, 255, 0.92);
+            --shadow: 0 18px 45px rgba(32, 91, 190, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #eef5ff;
+            font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            color: var(--ink);
+        }
+
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(circle at 92% 4%, rgba(255,255,255,0.96) 0 8%, transparent 20%),
+                linear-gradient(135deg, #f7fbff 0%, #edf5ff 54%, #f8fbff 100%);
+        }
+
+        .deck-stage {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            transform: scale(var(--scale, 1));
+            transform-origin: center center;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 96% 5%, rgba(26, 101, 255, 0.10) 0 2px, transparent 3px) 0 0 / 24px 24px,
+                linear-gradient(132deg, #f7fbff 0%, #eef6ff 55%, #fbfdff 100%);
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            padding: 24px 30px 22px;
+        }
+
+        .title-row {
+            position: relative;
+            height: 105px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .title-block {
+            position: relative;
+            padding-left: 34px;
+        }
+
+        .title-block::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 10px;
+            width: 15px;
+            height: 64px;
+            border-radius: 9px;
+            background: linear-gradient(180deg, #0c58ff, #2f83ff);
+            box-shadow: 0 6px 18px rgba(29, 109, 255, 0.32);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 52px;
+            line-height: 1.05;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #103d9d;
+        }
+
+        .subtitle {
+            margin-top: 16px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #2874ff;
+        }
+
+        .logo {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-right: 18px;
+            color: #2071c9;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        .logo-mark {
+            width: 72px;
+            height: 52px;
+            border: 7px solid #2580d7;
+            border-top-color: transparent;
+            border-radius: 50%;
+            position: relative;
+            transform: rotate(-25deg);
+        }
+
+        .logo-mark::before,
+        .logo-mark::after {
+            content: "";
+            position: absolute;
+            top: 10px;
+            width: 20px;
+            height: 36px;
+            border-radius: 16px;
+            background: #2580d7;
+        }
+
+        .logo-mark::before { left: 12px; transform: rotate(25deg); }
+        .logo-mark::after { right: 12px; transform: rotate(-25deg); }
+
+        .logo-text {
+            font-size: 28px;
+            line-height: 0.9;
+        }
+
+        .logo-sub {
+            display: block;
+            margin-top: 8px;
+            font-size: 12px;
+            letter-spacing: 9px;
+            color: #5b8fd7;
+        }
+
+        .card {
+            position: absolute;
+            background: var(--paper);
+            border: 2px solid var(--line);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 20px 24px 12px;
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 900;
+            color: #113f9e;
+        }
+
+        .badge {
+            width: 58px;
+            height: 58px;
+            display: grid;
+            place-items: center;
+            border-radius: 18px;
+            background: linear-gradient(145deg, #0c60ff, #3b83ff);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.38), 0 10px 22px rgba(25, 97, 230, 0.25);
+            color: #fff;
+            font-size: 28px;
+        }
+
+        .lead {
+            margin: 0 34px;
+            font-size: 16px;
+            line-height: 1.72;
+            font-weight: 600;
+            color: #405b94;
+        }
+
+        .flow-row {
+            position: absolute;
+            left: 30px;
+            right: 30px;
+            bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+        }
+
+        .mini-box {
+            width: 165px;
+            height: 72px;
+            border: 2px solid #99c2ff;
+            border-radius: 12px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(246,250,255,0.92));
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: #185bd7;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .mini-box .round {
+            flex: 0 0 44px;
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: var(--blue-700);
+            color: #fff;
+            font-size: 22px;
+        }
+
+        .mini-box span {
+            display: block;
+            color: #5070a9;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .plus,
+        .arrow {
+            color: #1463ec;
+            font-size: 35px;
+            font-weight: 900;
+        }
+
+        .dashed {
+            border-style: dashed;
+        }
+
+        .top-left { left: 30px; top: 125px; width: 890px; height: 330px; }
+        .top-right { left: 940px; top: 125px; width: 950px; height: 330px; }
+        .middle-left { left: 30px; top: 468px; width: 785px; height: 270px; }
+        .bottom-left { left: 30px; top: 755px; width: 920px; height: 178px; }
+        .bottom-right { left: 970px; top: 755px; width: 920px; height: 178px; }
+
+        .principles {
+            margin: 0 34px;
+            padding-left: 0;
+            list-style: none;
+            display: grid;
+            gap: 6px;
+            color: #405b94;
+            font-size: 15px;
+            line-height: 1.45;
+            font-weight: 600;
+        }
+
+        .principles li {
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .principles li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 9px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--blue-700);
+        }
+
+        .process-row {
+            position: absolute;
+            left: 35px;
+            right: 35px;
+            bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 48px;
+        }
+
+        .process-row::before {
+            content: "";
+            position: absolute;
+            left: 9%;
+            right: 9%;
+            top: 43px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #3181ff, transparent);
+            z-index: 0;
+        }
+
+        .step {
+            position: relative;
+            z-index: 1;
+            height: 86px;
+            border: 2px solid #98c1ff;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.94);
+            display: grid;
+            place-items: center;
+            text-align: center;
+            color: #315aa6;
+            font-size: 15px;
+            font-weight: 900;
+            padding: 6px;
+        }
+
+        .step .num {
+            position: absolute;
+            left: -16px;
+            bottom: -16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1769ff;
+            color: #fff;
+            display: grid;
+            place-items: center;
+            font-size: 14px;
+            border: 3px solid #fff;
+        }
+
+        .step .icon {
+            font-size: 30px;
+            color: #226dff;
+        }
+
+        .step.orange {
+            border-color: #ffd0a8;
+            color: #dd650d;
+            background: #fff8f1;
+        }
+
+        .step.orange .icon,
+        .step.orange .num {
+            background: #ff7a1a;
+            color: #fff;
+        }
+
+        .mechanism-lanes {
+            position: absolute;
+            left: 42px;
+            top: 96px;
+            width: 690px;
+            height: 136px;
+        }
+
+        .lane {
+            position: absolute;
+            left: 112px;
+            width: 300px;
+            height: 2px;
+            background: linear-gradient(90deg, #7eb2ff, #b6d3ff);
+        }
+
+        .lane::after {
+            content: "";
+            position: absolute;
+            right: -10px;
+            top: -6px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4388ff;
+        }
+
+        .lane:nth-child(1) { top: 12px; }
+        .lane:nth-child(2) { top: 62px; }
+        .lane:nth-child(3) { top: 112px; }
+        .lane:nth-child(4) {
+            top: 162px;
+            border-top: 2px dashed #ffb171;
+            background: none;
+        }
+
+        .feature-chip {
+            position: absolute;
+            left: 118px;
+            transform: translateY(-50%);
+            width: 162px;
+            height: 40px;
+            border-radius: 10px;
+            border: 2px solid #b9d5ff;
+            background: #fff;
+            color: #2768d8;
+            font-size: 18px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .feature-chip:nth-of-type(1) { top: 12px; }
+        .feature-chip:nth-of-type(2) { top: 62px; }
+        .feature-chip:nth-of-type(3) { top: 112px; }
+        .feature-chip:nth-of-type(4) {
+            top: 162px;
+            border-color: #ffc58f;
+            color: #ef7114;
+        }
+
+        .feature-icon {
+            position: absolute;
+            left: 0;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-size: 28px;
+            transform: translateY(-50%);
+        }
+
+        .feature-icon:nth-of-type(1) { top: 12px; background: #236fff; }
+        .feature-icon:nth-of-type(2) { top: 62px; background: #18a0bc; }
+        .feature-icon:nth-of-type(3) { top: 112px; background: #7559e8; }
+        .feature-icon:nth-of-type(4) { top: 162px; background: #ff7a1a; }
+
+        .engine {
+            position: absolute;
+            left: 820px;
+            top: 500px;
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle, #1a74ff 0 44%, #d9e9ff 45% 48%, #f5faff 49% 58%, transparent 59%),
+                conic-gradient(from 10deg, #8bbcff, #e7f1ff, #78adff, #e7f1ff, #8bbcff);
+            display: grid;
+            place-items: center;
+            text-align: center;
+            color: #fff;
+            font-size: 24px;
+            line-height: 1.35;
+            font-weight: 900;
+            box-shadow: 0 20px 50px rgba(27, 99, 220, 0.22);
+        }
+
+        .engine::before {
+            content: "⌬";
+            position: absolute;
+            top: 53px;
+            font-size: 66px;
+            opacity: 0.95;
+        }
+
+        .engine span {
+            margin-top: 72px;
+        }
+
+        .engine-line {
+            position: absolute;
+            left: 1100px;
+            width: 110px;
+            height: 3px;
+            background: #2e7bff;
+        }
+
+        .engine-line::before {
+            content: "";
+            position: absolute;
+            left: -10px;
+            top: -7px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #185fff;
+            border: 3px solid #fff;
+        }
+
+        .engine-line::after {
+            content: "";
+            position: absolute;
+            right: -10px;
+            top: -6px;
+            width: 12px;
+            height: 12px;
+            border-top: 3px solid #2e7bff;
+            border-right: 3px solid #2e7bff;
+            transform: rotate(45deg);
+        }
+
+        .line-1 { top: 548px; transform: rotate(-18deg); }
+        .line-2 { top: 650px; }
+        .line-3 { top: 750px; transform: rotate(18deg); }
+
+        .outcomes {
+            position: absolute;
+            left: 1215px;
+            top: 500px;
+            width: 315px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .outcome {
+            height: 78px;
+            border: 2px solid #a8c9ff;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 13px 18px;
+            color: #264f9f;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .outcome strong {
+            display: block;
+            color: #1e69f5;
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .outcome .icon {
+            font-size: 34px;
+            color: #1e69f5;
+        }
+
+        .evidence-flow {
+            position: absolute;
+            left: 35px;
+            right: 35px;
+            bottom: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+        }
+
+        .evidence-flow .mini-box {
+            width: 185px;
+        }
+
+        .quote-box {
+            width: 165px;
+            height: 72px;
+            border: 2px solid #b7d3ff;
+            border-radius: 12px;
+            background: #fff;
+            color: #6d5de8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .quote-mark {
+            font-size: 36px;
+            line-height: 0.7;
+            opacity: 0.7;
+        }
+
+        .orange-result {
+            width: 150px;
+            height: 72px;
+            border: 2px solid #ffc489;
+            border-radius: 12px;
+            background: #fff7f0;
+            color: #f0741a;
+            display: grid;
+            grid-template-columns: 48px 1fr;
+            align-items: center;
+            padding: 10px;
+            font-size: 19px;
+            font-weight: 900;
+        }
+
+        .note-list {
+            position: absolute;
+            left: 74px;
+            bottom: 18px;
+            display: grid;
+            gap: 6px;
+            color: #405b94;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .note-list div::before {
+            content: "✓";
+            display: inline-grid;
+            place-items: center;
+            width: 18px;
+            height: 18px;
+            margin-right: 9px;
+            border-radius: 50%;
+            background: #1b70ff;
+            color: #fff;
+            font-size: 12px;
+        }
+
+        .value-grid {
+            position: absolute;
+            left: 35px;
+            right: 35px;
+            top: 80px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .value {
+            height: 78px;
+            border: 2px solid #b3d0ff;
+            border-radius: 12px;
+            background: #fff;
+            display: grid;
+            grid-template-columns: 52px 1fr;
+            align-items: center;
+            padding: 10px 12px;
+            color: #3d5b99;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .value strong {
+            display: block;
+            color: #1d69ef;
+            font-size: 17px;
+            margin-bottom: 4px;
+        }
+
+        .value .icon {
+            font-size: 34px;
+            color: #1e6dff;
+        }
+
+        .value.orange {
+            border-color: #ffc184;
+            background: #fff7ef;
+        }
+
+        .value.orange strong,
+        .value.orange .icon {
+            color: #f17613;
+        }
+
+        .conclusion {
+            position: absolute;
+            left: 30px;
+            right: 30px;
+            bottom: 22px;
+            height: 74px;
+            border: 2px solid #99c2ff;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #eaf3ff 0%, #dcecff 100%);
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            padding: 0 38px;
+            color: #1255d9;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            box-shadow: 0 10px 25px rgba(32, 91, 190, 0.12);
+        }
+
+        .conclusion .icon {
+            font-size: 42px;
+        }
+
+        .small-label {
+            font-size: 13px;
+            color: #7086b5;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <main class="deck-viewport">
+        <section class="deck-stage" aria-label="多模态心理分析模型是什么">
+            <div class="slide active">
+                <header class="title-row">
+                    <div class="title-block">
+                        <h1>多模态心理分析模型是什么?</h1>
+                        <div class="subtitle">融合视觉、听觉与文本逻辑，形成更完整、更可验证的深度心理洞察</div>
+                    </div>
+                    <div class="logo" aria-label="LIANXIN logo">
+                        <div class="logo-mark"></div>
+                        <div>
+                            <div class="logo-text">LIANXIN</div>
+                            <span class="logo-sub">连信数字</span>
+                        </div>
+                    </div>
+                </header>
+
+                <article class="card top-left">
+                    <h2 class="card-title"><span class="badge">⌬</span>什么是多模态心理分析？</h2>
+                    <p class="lead">
+                        任何单一维度的信息都可能是碎片化的，真正的深度洞察来自视觉（动作、表情）、
+                        听觉（音高、语速）与文本逻辑之间的交叉验证。多模态心理分析强调不只看
+                        “说了什么”，还要结合“怎么说、做了什么、表现出了什么”，从而捕捉
+                        “语言之外”的深层心理信息。
+                    </p>
+                    <div class="flow-row">
+                        <div class="mini-box"><div class="round">📷</div><div>视觉：<span>动作 / 表情</span></div></div>
+                        <div class="plus">+</div>
+                        <div class="mini-box"><div class="round">〽</div><div>听觉：<span>音高 / 语速</span></div></div>
+                        <div class="plus">+</div>
+                        <div class="mini-box"><div class="round">▣</div><div>文本：<span>语义 / 逻辑</span></div></div>
+                        <div class="arrow">→</div>
+                        <div class="mini-box dashed"><div class="round">▰</div><div>交叉验证 /<span>融合分析</span></div></div>
+                    </div>
+                </article>
+
+                <article class="card top-right">
+                    <h2 class="card-title"><span class="badge">✣</span>技术原理</h2>
+                    <ul class="principles">
+                        <li>同步捕捉并结构化分析面部、语音、文本及肢体数据，建立多模态特征库。</li>
+                        <li>寻找不同模态特征之间的一致性与矛盾点，验证心理状态的稳定性与可信度。</li>
+                        <li>通过多模态特征提取 → 跨模态融合比对 → 知识图谱增强证据溯源 → 三维加权评分 → 可检验报告。</li>
+                    </ul>
+                    <div class="process-row">
+                        <div class="step"><div class="icon">◇</div>多模态<br>特征提取<span class="num">01</span></div>
+                        <div class="step"><div class="icon">⌘</div>跨模态<br>融合比对<span class="num">02</span></div>
+                        <div class="step"><div class="icon">♙</div>知识图谱增强<br>证据溯源<span class="num">03</span></div>
+                        <div class="step orange"><div class="icon">▥</div>三维加权<br>评分<span class="num">04</span></div>
+                        <div class="step"><div class="icon">▧</div>可检验<br>报告<span class="num">05</span></div>
+                    </div>
+                </article>
+
+                <article class="card middle-left">
+                    <h2 class="card-title"><span class="badge">✦</span>核心机制示意</h2>
+                    <div class="mechanism-lanes">
+                        <div class="feature-icon">◉</div>
+                        <div class="feature-icon">🎙</div>
+                        <div class="feature-icon">▤</div>
+                        <div class="feature-icon">♙</div>
+                        <div class="feature-chip">面部特征</div>
+                        <div class="feature-chip">语音特征</div>
+                        <div class="feature-chip">文本特征</div>
+                        <div class="feature-chip">肢体特征</div>
+                        <div class="lane"></div>
+                        <div class="lane"></div>
+                        <div class="lane"></div>
+                        <div class="lane"></div>
+                    </div>
+                </article>
+
+                <div class="engine"><span>多模态心理<br>分析引擎</span></div>
+                <div class="engine-line line-1"></div>
+                <div class="engine-line line-2"></div>
+                <div class="engine-line line-3"></div>
+                <div class="outcomes">
+                    <div class="outcome"><div class="icon">◎</div><div><strong>状态识别</strong>识别心理状态与情绪倾向</div></div>
+                    <div class="outcome"><div class="icon">🛡</div><div><strong>矛盾校验</strong>发现模态间的不一致与矛盾点</div></div>
+                    <div class="outcome"><div class="icon">⌁</div><div><strong>证据链生成</strong>构建可追溯、可验证的证据链</div></div>
+                </div>
+
+                <article class="card bottom-left">
+                    <h2 class="card-title"><span class="badge">▧</span>证据链示例</h2>
+                    <div class="evidence-flow">
+                        <div class="mini-box"><div class="round">≋</div><div>语速放缓</div></div>
+                        <div class="plus">+</div>
+                        <div class="mini-box"><div class="round">☁</div><div>眉间皱缩</div></div>
+                        <div class="plus">+</div>
+                        <div class="quote-box"><span class="quote-mark">“</span><div>“撑着”<br>高频出现</div></div>
+                        <div class="arrow">→</div>
+                        <div class="orange-result"><div>🧠</div><div>情绪耗竭</div></div>
+                    </div>
+                    <div class="note-list">
+                        <div>系统并非只给出结论，而是同时呈现结论背后的多模态依据。</div>
+                        <div>让洞察可验证、可解释、可追溯。</div>
+                    </div>
+                </article>
+
+                <article class="card bottom-right">
+                    <h2 class="card-title"><span class="badge">◇</span>模型价值</h2>
+                    <div class="value-grid">
+                        <div class="value"><div class="icon">◎</div><div><strong>更全面：</strong>避免单一模态带来的偏差</div></div>
+                        <div class="value"><div class="icon">⬟</div><div><strong>更可靠：</strong>通过跨模态一致性提升判断可信度</div></div>
+                        <div class="value"><div class="icon">▧</div><div><strong>更可解释：</strong>输出完整证据链，而非黑箱结论</div></div>
+                        <div class="value orange"><div class="icon">☀</div><div><strong>更接近机制理解：</strong>从预测结果走向成因洞察</div></div>
+                    </div>
+                </article>
+
+                <footer class="conclusion">
+                    <span class="icon">◎</span>
+                    <span>多模态心理分析看到的不只是单一信号，而是多个心理线索之间如何相互印证、相互矛盾，并共同指向更真实的心理状态。</span>
+                </footer>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function scaleStage() {
+            const stage = document.querySelector('.deck-stage');
+            const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            stage.style.setProperty('--scale', scale);
+        }
+
+        window.addEventListener('resize', scaleStage);
+        window.addEventListener('load', scaleStage);
+        scaleStage();
+    </script>
+</body>
+</html>
