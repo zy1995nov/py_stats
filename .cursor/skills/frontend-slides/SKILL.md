@@ -15,6 +15,16 @@ Create zero-dependency, animation-rich HTML presentations that run entirely in t
 4. **Progressive Disclosure** — Read lightweight style indexes first. For bold templates, use small preview cards for style previews and load the full `design.md` only after the user picks that template.
 5. **Fixed 16:9 Stage (NON-NEGOTIABLE)** — Every deck uses a 1920×1080 slide canvas scaled as a whole to the viewport. Slides must stay 16:9 on every screen, including phones. Do not reflow slide content to fit the device.
 
+## Configured Template Library
+
+For this installed skill, the canonical HTML template library is:
+
+`/Users/like/Desktop/beautiful-html-templates/AGENTS.md`
+
+When creating a new presentation or converting a PPT/PPTX file, read that `AGENTS.md` first and follow its template-selection workflow. Use the sibling `index.json`, `templates/`, `runtime/`, and assets from `/Users/like/Desktop/beautiful-html-templates/`.
+
+Do not default to this skill's bundled `bold-template-pack` when the configured template library is available. Use `bold-template-pack` only if the user explicitly asks for it or explicitly says not to use `/Users/like/Desktop/beautiful-html-templates/`.
+
 ## Design Aesthetics
 
 You tend to converge toward generic, "on distribution" outputs. In frontend design, this creates what users call the "AI slop" aesthetic. Avoid this: make creative, distinctive frontends that surprise and delight.
@@ -139,9 +149,9 @@ Do not ask the user whether they want options or a preset picker. The default di
 
 If the user already gave a vibe, use it. If they did not, infer the likely mood from the occasion, audience, content, and stakes. Keep the options diverse enough that the user can react visually instead of needing to articulate taste up front.
 
-If the user explicitly names a preset or bold template, honor that as one option and generate the remaining preview slots around it.
+If the user explicitly names a template from `/Users/like/Desktop/beautiful-html-templates/`, honor that as one option and generate the remaining preview slots from the same configured library.
 
-Read [STYLE_PRESETS.md](STYLE_PRESETS.md) for safe preset candidates. If [bold-template-pack/selection-index.json](bold-template-pack/selection-index.json) exists, read that compact index too, but do not read any `design.md` files yet.
+Read `/Users/like/Desktop/beautiful-html-templates/AGENTS.md` and `/Users/like/Desktop/beautiful-html-templates/index.json` for template candidates. Read [STYLE_PRESETS.md](STYLE_PRESETS.md) and [bold-template-pack/selection-index.json](bold-template-pack/selection-index.json) only when the user explicitly asks for non-library styles or declines the configured template library.
 
 | Mood                | Suggested Presets                                  |
 | ------------------- | -------------------------------------------------- |
@@ -152,12 +162,11 @@ Read [STYLE_PRESETS.md](STYLE_PRESETS.md) for safe preset candidates. If [bold-t
 
 **Preview mix rules:**
 
-- Generate 3 previews by default: 1 safe preset from `STYLE_PRESETS.md`, at least 1 bold template from `bold-template-pack/selection-index.json`, and 1 wildcard.
-- The wildcard may be either a second bold template or a self-generated custom design. Choose whichever creates the strongest, most useful contrast for the user's occasion, audience, mood, and content.
-- Do not force every expressive option to come from the template library. If the brief has a sharper, more specific design opportunity than the available templates, use the wildcard slot to design freely.
-- For conservative or high-stakes decks, make the safe preset especially restrained; choose a calm, higher-formality bold template; make the wildcard either another restrained template or a custom design that feels authoritative rather than decorative.
-- For expressive decks, keep the safe preset as a readable fallback; choose one strong bold template; make the wildcard adventurous, context-specific, and clearly different from both other previews.
-- If bold template matches feel weak, use the wildcard as a custom design or fall back to another safe preset instead of forcing a template.
+- Generate 3 previews by default from `/Users/like/Desktop/beautiful-html-templates/` using the workflow in its `AGENTS.md`.
+- Choose candidates by matching the user's occasion and mood against the configured library's `index.json` fields, including `mood`, `tone`, `best_for`, `avoid_for`, `formality`, and density-related metadata when present.
+- Keep the three previews genuinely different, but keep all three grounded in the configured HTML template library unless the user asks for a custom direction.
+- Use this skill's safe presets or bundled `bold-template-pack` only as explicit opt-ins or fallbacks after the user declines the configured template library.
+- If the configured template library is unavailable in the current environment, tell the user the path is unavailable instead of silently switching libraries.
 
 **Custom wildcard design rules:**
 
@@ -168,14 +177,14 @@ Read [STYLE_PRESETS.md](STYLE_PRESETS.md) for safe preset candidates. If [bold-t
 - Use fixed 1920×1080 stage rules and pass the same preview authenticity checks as every other option.
 - Never render "custom", "wildcard", "AI-generated", or design-process labels on the slide itself.
 
-**Bold template selection rules:**
+**Configured template selection rules:**
 
-- Match user purpose and mood against `mood`, `tone`, `best_for`, `avoid_for`, `formality`, `density`, and `scheme`.
+- Match user purpose and mood against the configured library's `mood`, `tone`, `best_for`, `avoid_for`, `formality`, `density`, and `scheme` metadata when those fields exist.
 - Treat `best_for` examples as soft signals, not strict industry filters.
 - Keep the three previews genuinely different from each other.
-- After choosing bold template candidate(s), read only those candidate(s)' `preview.md` files from the `preview_md` paths in the selection index.
-- Use `preview.md` only for title-slide previews. Do not read full `design.md` files until the user picks the final template.
-- Do not read or copy `template.html` unless the selected final `design.md` is missing a critical implementation detail.
+- After choosing template candidate(s), read only the candidate folders needed for the three title-slide previews.
+- Use the selected template's full folder only after the user picks the final template.
+- Preserve the selected template's visual system, but adapt the final output to Frontend Slides fixed-stage and single-file requirements.
 
 **Preview authenticity rules (NON-NEGOTIABLE):**
 
@@ -214,14 +223,14 @@ If the user's stated needs are mixed, choose the closer of the two modes instead
 
 Never let high density become visual clutter. If a high-density slide starts to overflow, split it or redesign it into a clearer structure.
 
-If the user selected a bold template from `bold-template-pack`, read that one template's full `design.md` before generating. Do not read the other bold templates. Treat `design.md` as the design recipe:
+If the user selected a template from `/Users/like/Desktop/beautiful-html-templates/`, read that template's full folder before generating. Treat its `template.html`, styles, runtime files, and sibling assets as the design recipe:
 
 - Preserve its fonts, palette, decorative vocabulary, spacing rhythm, and component grammar.
 - Generate the final deck as a fixed 1920×1080 stage scaled uniformly to the viewport, regardless of whether the source template originally used `deck-stage.js` or viewport-fluid CSS.
-- Treat viewport-fluid values in `design.md` as design proportions to translate into 1920×1080 stage coordinates. Do not keep them as live viewport reflow rules in the final deck.
+- Treat any responsive or viewport-fluid source values as design proportions to translate into 1920×1080 stage coordinates. Do not keep them as live viewport reflow rules in the final deck.
 - Keep the output as a single self-contained Frontend Slides HTML file.
-- Do not copy demo slide content or mimic the source template too literally.
-- Use `template.html` only as a last-resort implementation reference for the selected template.
+- Replace demo slide content with the user's content; keep the selected template's visual system without copying placeholder copy.
+- Use `template.html`, styles, runtime files, and sibling assets from the selected template as implementation references.
 - After generating, verify both content overflow and panel overlap in rendered browser screenshots. `scrollHeight` checks alone are not enough because grid panels can visually cover each other.
 
 If the user selected a self-generated custom wildcard, treat that preview's CSS and layout as the design recipe:
@@ -253,7 +262,7 @@ When converting PowerPoint files:
 
 1. **Extract content** — Run `python scripts/extract-pptx.py <input.pptx> <output_dir>` (install python-pptx if needed: `pip install python-pptx`)
 2. **Confirm with user** — Present extracted slide titles, content summaries, and image counts
-3. **Style selection** — Proceed to Phase 2 for style discovery
+3. **Style selection** — Proceed to Phase 2 and use `/Users/like/Desktop/beautiful-html-templates/AGENTS.md` for template discovery
 4. **Generate HTML** — Convert to chosen style, preserving all text, images (from assets/), slide order, and speaker notes (as HTML comments)
 
 ---
@@ -369,9 +378,11 @@ This captures each slide as a screenshot and combines them into a PDF. Perfect f
 | File                                               | Purpose                                                              | When to Read              |
 | -------------------------------------------------- | -------------------------------------------------------------------- | ------------------------- |
 | [STYLE_PRESETS.md](STYLE_PRESETS.md)               | 12 curated visual presets with colors, fonts, and signature elements | Phase 2 (style selection) |
-| [bold-template-pack/selection-index.json](bold-template-pack/selection-index.json) | Compact bold template metadata for candidate selection | Phase 2 (style selection) |
-| [bold-template-pack/templates/*/preview.md](bold-template-pack/templates/) | Lightweight style cards for shortlisted bold title previews | Phase 2 after shortlisting |
-| [bold-template-pack/templates/*/design.md](bold-template-pack/templates/) | Detailed design-system docs for the selected bold template only | Phase 3 after user selection |
+| `/Users/like/Desktop/beautiful-html-templates/AGENTS.md` | Configured template-library operating manual | Phase 2 (style selection) |
+| `/Users/like/Desktop/beautiful-html-templates/index.json` | Configured template metadata for candidate selection | Phase 2 (style selection) |
+| [bold-template-pack/selection-index.json](bold-template-pack/selection-index.json) | Bundled bold template metadata, opt-in only for this install | Phase 2 only if requested |
+| [bold-template-pack/templates/*/preview.md](bold-template-pack/templates/) | Bundled style cards, opt-in only for this install | Phase 2 only if requested |
+| [bold-template-pack/templates/*/design.md](bold-template-pack/templates/) | Bundled design-system docs, opt-in only for this install | Phase 3 only if requested |
 | [viewport-base.css](viewport-base.css)             | Mandatory fixed-stage CSS — copy into every presentation             | Phase 3 (generation)      |
 | [html-template.md](html-template.md)               | HTML structure, JS features, code quality standards                  | Phase 3 (generation)      |
 | [animation-patterns.md](animation-patterns.md)     | CSS/JS animation snippets and effect-to-feeling guide                | Phase 3 (generation)      |
